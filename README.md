@@ -1,10 +1,10 @@
 [![serverless](http://public.serverless.com/badges/v3.svg)](http://www.serverless.com)
 
 # This plugin is a copy of [serverless-aws-alias](https://www.npmjs.com/package/serverless-aws-alias)
+
 **NEW**
 
-* Added support for serverless framework ver.3
-* Added support for step functions
+- 2025/01/11: Added --retain CLI option
 
 # Serverless AWS alias plugin
 
@@ -31,11 +31,13 @@ Add the plugin to your package.json's devDependencies and to the plugins array
 in your `serverless.yml` file
 
 Terminal:
+
 ```
 npm install --save-dev serverless-aws-alias
 ```
 
 serverless.yml:
+
 ```
 plugins:
   - serverless-aws-alias
@@ -303,7 +305,7 @@ resources:
         ShardCount: 1
 ```
 
-When a function is deployed to an alias it will now also listen to the *my-kinesis*
+When a function is deployed to an alias it will now also listen to the _my-kinesis_
 stream events. This is useful, if you want to test new implementations with an
 existing resource.
 
@@ -378,6 +380,7 @@ deployed alias you can combine it with the `--alias` option as usual.
 ## The alias command
 
 ## Subcommands
+
 ### alias remove
 
 Removes an alias and all its uniquely referenced functions and function versions.
@@ -437,9 +440,9 @@ If you are not happy with the plugin or just do not like me, you can easily get 
 of the plugin without doing any harm to the deployed stuff. The plugin is
 non-intrusive and does only add some output variables to the main stack:
 
-* Remove all alias stacks via the CloudFormation console or with 'alias remove'
-* Remove the plugin from your serverless.yml and your package.json
-* Deploy the service again (serverless deploy)
+- Remove all alias stacks via the CloudFormation console or with 'alias remove'
+- Remove the plugin from your serverless.yml and your package.json
+- Deploy the service again (serverless deploy)
 
 You're all set.
 
@@ -453,26 +456,27 @@ internal networks. This is possible because each deployed AWS lambda version
 contains its entire configuration (VPC settings, environment, etc.)
 
 ## For developers
+
 ### Lifecycle events
 
 _currently the exposed hooks are not available after the change to the new SLS lifecycle model_
 
 The plugin adds the following lifecycle events that can be hooked by other plugins:
 
-* alias:deploy:uploadArtifacts
+- alias:deploy:uploadArtifacts
 
   Upload alias dependent CF definitions to S3.
 
-* alias:deploy:updateAliasStack
+- alias:deploy:updateAliasStack
 
   Update the alias CF stack.
 
-* alias:deploy:done
+- alias:deploy:done
 
   The Alias plugin is successfully finished. Hook this instead of 'after:deploy:deploy'
   to make sure that your plugin gets triggered right after the alias plugin is done.
 
-* alias:remove:removeStack
+- alias:remove:removeStack
 
   The alias stack is removed from CF.
 
@@ -485,7 +489,7 @@ and _serverless.service.provider.deployedAliasTemplates[]_.
 
 ## Ideas
 
-* The master alias for a stage could be protected by a separate stack policy that
+- The master alias for a stage could be protected by a separate stack policy that
   only allows admin users to deploy or change it. The stage stack does not have
   to be protected individually because the stack cross references prohibit changes
   naturally. It might be possible to introduce some kind of per alias policy.
