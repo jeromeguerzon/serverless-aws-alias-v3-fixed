@@ -1,64 +1,63 @@
-'use strict';
+"use strict";
 
 /**
  * Serverless AWS alias plugin
  */
 
-const BbPromise = require('bluebird')
-	, _ = require('lodash')
-	, Path = require('path')
-	, validate = require('./lib/validate')
-	, configureAliasStack = require('./lib/configureAliasStack')
-	, createAliasStack = require('./lib/createAliasStack')
-	, updateAliasStack = require('./lib/updateAliasStack')
-	, aliasRestructureStack = require('./lib/aliasRestructureStack')
-	, stackInformation = require('./lib/stackInformation')
-	, listAliases = require('./lib/listAliases')
-	, removeAlias = require('./lib/removeAlias')
-	, logs = require('./lib/logs')
-	, collectUserResources = require('./lib/collectUserResources')
-	, uploadAliasArtifacts = require('./lib/uploadAliasArtifacts')
-	, updateFunctionAlias = require('./lib/updateFunctionAlias')
-	, deferredOutputs = require('./lib/deferredOutputs');
+const BbPromise = require("bluebird"),
+	_ = require("lodash"),
+	Path = require("path"),
+	validate = require("./lib/validate"),
+	configureAliasStack = require("./lib/configureAliasStack"),
+	createAliasStack = require("./lib/createAliasStack"),
+	updateAliasStack = require("./lib/updateAliasStack"),
+	aliasRestructureStack = require("./lib/aliasRestructureStack"),
+	stackInformation = require("./lib/stackInformation"),
+	listAliases = require("./lib/listAliases"),
+	removeAlias = require("./lib/removeAlias"),
+	logs = require("./lib/logs"),
+	collectUserResources = require("./lib/collectUserResources"),
+	uploadAliasArtifacts = require("./lib/uploadAliasArtifacts"),
+	updateFunctionAlias = require("./lib/updateFunctionAlias"),
+	deferredOutputs = require("./lib/deferredOutputs");
 
 const aliasStageCommonOptions = {
-	type: 'object',
+	type: "object",
 	properties: {
-		'cacheDataEncrypted':  { type: 'boolean' },
-		'cacheTtlInSeconds':  { type: 'integer' },
-		'cachingEnabled':  { type: 'boolean' },
-		'dataTraceEnabled':  { type: 'boolean' },
-		'loggingLevel':  { type: 'string' },
-		'metricsEnabled':  { type: 'boolean' },
-		'throttlingBurstLimit':  { type: 'integer' },
-		'throttlingRateLimit':  { type: 'number' },
+		cacheDataEncrypted: { type: "boolean" },
+		cacheTtlInSeconds: { type: "integer" },
+		cachingEnabled: { type: "boolean" },
+		dataTraceEnabled: { type: "boolean" },
+		loggingLevel: { type: "string" },
+		metricsEnabled: { type: "boolean" },
+		throttlingBurstLimit: { type: "integer" },
+		throttlingRateLimit: { type: "number" },
 	},
 	additionalProperties: false,
 };
 
 const aliasStageCustomOptions = {
-	type: 'object',
+	type: "object",
 	properties: {
-		'cacheDataEncrypted':  { type: 'boolean' },
-		'cacheTtlInSeconds':  { type: 'integer' },
-		'cachingEnabled':  { type: 'boolean' },
-		'dataTraceEnabled':  { type: 'boolean' },
-		'loggingLevel':  { type: 'string' },
-		'metricsEnabled':  { type: 'boolean' },
-		'throttlingBurstLimit':  { type: 'integer' },
-		'throttlingRateLimit':  { type: 'number' },
-		'cacheClusterEnabled':  { type: 'boolean' },
-		'cacheClusterSize':  { type: 'integer' },
+		cacheDataEncrypted: { type: "boolean" },
+		cacheTtlInSeconds: { type: "integer" },
+		cachingEnabled: { type: "boolean" },
+		dataTraceEnabled: { type: "boolean" },
+		loggingLevel: { type: "string" },
+		metricsEnabled: { type: "boolean" },
+		throttlingBurstLimit: { type: "integer" },
+		throttlingRateLimit: { type: "number" },
+		cacheClusterEnabled: { type: "boolean" },
+		cacheClusterSize: { type: "integer" },
 	},
 	additionalProperties: false,
 };
 
 class AwsAlias {
-
 	constructor(serverless, options) {
 		this._serverless = serverless;
 		this._options = options || {};
-		this._provider = this._serverless.getProvider('aws');
+		this._provider = this._serverless.getProvider("aws");
 
 		/**
 		 * Set preliminary stage and alias. This is needed to enable the injection
@@ -71,20 +70,20 @@ class AwsAlias {
 		/**
 		 * Load stack helpers from Serverless installation.
 		 */
-		const monitorStack = require(
-			Path.join(this._serverless.config.serverlessPath,
-				'plugins',
-				'aws',
-				'lib',
-				'monitor-stack')
-		);
-		const setBucketName = require(
-			Path.join(this._serverless.config.serverlessPath,
-				'plugins',
-				'aws',
-				'lib',
-				'set-bucket-name')
-		);
+		const monitorStack = require(Path.join(
+			this._serverless.config.serverlessPath,
+			"plugins",
+			"aws",
+			"lib",
+			"monitor-stack"
+		));
+		const setBucketName = require(Path.join(
+			this._serverless.config.serverlessPath,
+			"plugins",
+			"aws",
+			"lib",
+			"set-bucket-name"
+		));
 
 		_.assign(
 			this,
@@ -109,192 +108,219 @@ class AwsAlias {
 			alias: {
 				commands: {
 					remove: {
-						usage: 'Remove a deployed alias',
-						lifecycleEvents: [
-							'remove'
-						],
+						usage: "Remove a deployed alias",
+						lifecycleEvents: ["remove"],
 						options: {
 							alias: {
-								usage: 'Name of the alias',
-								shortcut: 'a',
+								usage: "Name of the alias",
+								shortcut: "a",
 								required: true,
-								type: 'string',
+								type: "string",
 							},
 							verbose: {
-								usage: 'Enable verbose output',
-								shortcut: 'v',
+								usage: "Enable verbose output",
+								shortcut: "v",
 								required: false,
-								type: 'boolean',
-							}
-						}
-					}
-				}
+								type: "boolean",
+							},
+						},
+					},
+				},
 			},
 			package: {
 				options: {
 					alias: {
-						usage: 'Name of the alias',
-						shortcut: 'a',
+						usage: "Name of the alias",
+						shortcut: "a",
 						required: false,
-						type: 'string'
+						type: "string",
 					},
-				}
+					retain: {
+						usage: "Retain old Lambda versions",
+						required: false,
+						type: "boolean",
+					},
+				},
 			},
 			deploy: {
 				options: {
 					alias: {
-						usage: 'Name of the alias',
-						shortcut: 'a',
+						usage: "Name of the alias",
+						shortcut: "a",
 						required: false,
-						type: 'string'
+						type: "string",
 					},
-				}
+					retain: {
+						usage: "Retain old Lambda versions",
+						required: false,
+						type: "boolean",
+					},
+				},
 			},
 			s3deploy: {
 				options: {
 					alias: {
-						usage: 'Name of the alias',
-						shortcut: 'a',
+						usage: "Name of the alias",
+						shortcut: "a",
 						required: false,
-						type: 'string'
+						type: "string",
 					},
-				}
+					retain: {
+						usage: "Retain old Lambda versions",
+						required: false,
+						type: "boolean",
+					},
+				},
 			},
 		};
 
 		this._serverless.configSchemaHandler.defineCustomProperties({
-			properties: { aliasStage: aliasStageCustomOptions	},
+			properties: { aliasStage: aliasStageCustomOptions },
 		});
 
-		this._serverless.configSchemaHandler.defineFunctionProperties('aws', {
-			properties: { aliasStage: aliasStageCommonOptions	},
+		this._serverless.configSchemaHandler.defineFunctionProperties("aws", {
+			properties: { aliasStage: aliasStageCommonOptions },
 		});
 
-		this._serverless.configSchemaHandler.defineFunctionEventProperties('aws', 'http', {
-			properties: { aliasStage: aliasStageCommonOptions	},
-		});
+		this._serverless.configSchemaHandler.defineFunctionEventProperties(
+			"aws",
+			"http",
+			{
+				properties: { aliasStage: aliasStageCommonOptions },
+			}
+		);
 
 		this._hooks = {
-			'before:package:initialize': () => BbPromise.bind(this)
-				.then(this.validate),
+			"before:package:initialize": () =>
+				BbPromise.bind(this).then(this.validate),
 
-			'before:aws:package:finalize:mergeCustomProviderResources': () => BbPromise.bind(this)
-				.then(this.collectUserResources),
+			"before:aws:package:finalize:mergeCustomProviderResources": () =>
+				BbPromise.bind(this).then(this.collectUserResources),
 
-			'before:deploy:deploy': () => BbPromise.bind(this)
-				.then(this.validate)
-				.then(this.configureAliasStack),
+			"before:deploy:deploy": () =>
+				BbPromise.bind(this).then(this.validate).then(this.configureAliasStack),
 
-			'before:aws:deploy:deploy:createStack': () => BbPromise.bind(this)
-				.then(this.aliasStackLoadCurrentCFStackAndDependencies)
-				.spread(this.aliasRestructureStack),
+			"before:aws:deploy:deploy:createStack": () =>
+				BbPromise.bind(this)
+					.then(this.aliasStackLoadCurrentCFStackAndDependencies)
+					.spread(this.aliasRestructureStack),
 
-			'after:aws:deploy:deploy:createStack': () => BbPromise.bind(this)
-				.then(this.createAliasStack),
+			"after:aws:deploy:deploy:createStack": () =>
+				BbPromise.bind(this).then(this.createAliasStack),
 
-			'after:aws:deploy:deploy:uploadArtifacts': () => BbPromise.bind(this)
-				.then(() => BbPromise.resolve()),
+			"after:aws:deploy:deploy:uploadArtifacts": () =>
+				BbPromise.bind(this).then(() => BbPromise.resolve()),
 
-			'after:aws:deploy:deploy:updateStack': () => BbPromise.bind(this)
-				.then(this.setBucketName)
-				.then(this.uploadAliasArtifacts)
-				.then(this.updateAliasStack),
+			"after:aws:deploy:deploy:updateStack": () =>
+				BbPromise.bind(this)
+					.then(this.setBucketName)
+					.then(this.uploadAliasArtifacts)
+					.then(this.updateAliasStack),
 
-			'before:deploy:function:initialize': () => BbPromise.bind(this)
-				.then(this.validate)
-				.then(() => {
-					// Force forced deploy
-					if (!this._options.force) {
-						return BbPromise.reject(new this.serverless.classes.Error("You must deploy single functions using --force with the alias plugin."));
-					}
-					return BbPromise.resolve();
-				}),
+			"before:deploy:function:initialize": () =>
+				BbPromise.bind(this)
+					.then(this.validate)
+					.then(() => {
+						// Force forced deploy
+						if (!this._options.force) {
+							return BbPromise.reject(
+								new this.serverless.classes.Error(
+									"You must deploy single functions using --force with the alias plugin."
+								)
+							);
+						}
+						return BbPromise.resolve();
+					}),
 
-			'after:deploy:function:deploy': () => BbPromise.bind(this)
-				.then(this.updateFunctionAlias),
+			"after:deploy:function:deploy": () =>
+				BbPromise.bind(this).then(this.updateFunctionAlias),
 
-			'after:info:info': () => BbPromise.bind(this)
-				.then(this.validate)
-				.then(this.listAliases),
+			"after:info:info": () =>
+				BbPromise.bind(this).then(this.validate).then(this.listAliases),
 
-			'before:remove:remove': () => {
+			"before:remove:remove": () => {
 				if (!this._validated) {
-					return BbPromise.reject(new this._serverless.classes.Error(`Use "serverless alias remove --alias=${this._stage}" to remove the service.`));
+					return BbPromise.reject(
+						new this._serverless.classes.Error(
+							`Use "serverless alias remove --alias=${this._stage}" to remove the service.`
+						)
+					);
 				}
 				return BbPromise.resolve();
 			},
 
 			// Override the logs command - must be, because the $LATEST filter
 			// in the original logs command is not easy to change without hacks.
-			'logs:logs': () => BbPromise.bind(this)
-				.then(this.validate)
-				.then(this.logsValidate)
-				.then(this.logsGetLogStreams)
-				.then(this.functionLogsShowLogs),
+			"logs:logs": () =>
+				BbPromise.bind(this)
+					.then(this.validate)
+					.then(this.logsValidate)
+					.then(this.logsGetLogStreams)
+					.then(this.functionLogsShowLogs),
 
-			'logs:api:logs': () => BbPromise.bind(this)
-				.then(this.validate)
-				.then(this.apiLogsValidate)
-				.then(this.apiLogsGetLogStreams)
-				.then(this.apiLogsShowLogs),
+			"logs:api:logs": () =>
+				BbPromise.bind(this)
+					.then(this.validate)
+					.then(this.apiLogsValidate)
+					.then(this.apiLogsGetLogStreams)
+					.then(this.apiLogsShowLogs),
 
-			'alias:remove:remove': () => BbPromise.bind(this)
-				.then(this.validate)
-				.then(this.aliasStackLoadCurrentCFStackAndDependencies)
-				.spread(this.removeAlias)
+			"alias:remove:remove": () =>
+				BbPromise.bind(this)
+					.then(this.validate)
+					.then(this.aliasStackLoadCurrentCFStackAndDependencies)
+					.spread(this.removeAlias),
 		};
 
 		// Patch hooks to override our event replacements
 		const pluginManager = this.serverless.pluginManager;
-		const logHooks = pluginManager.hooks['logs:logs'];
-		_.pullAllWith(logHooks, [ 'AwsLogs' ], (a, b) => a.pluginName === b);
+		const logHooks = pluginManager.hooks["logs:logs"];
+		_.pullAllWith(logHooks, ["AwsLogs"], (a, b) => a.pluginName === b);
 
 		// Extend the logs command if available
 		try {
-			const logCommand = pluginManager.getCommand([ 'logs' ]);
+			const logCommand = pluginManager.getCommand(["logs"]);
 			logCommand.options.alias = {
-				usage: 'Alias'
+				usage: "Alias",
 			};
 			logCommand.options.version = {
-				usage: 'Logs a specific version of the function'
+				usage: "Logs a specific version of the function",
 			};
 			logCommand.commands = _.assign({}, logCommand.commands, {
 				api: {
-					usage: 'Output the logs of a deployed APIG stage (alias)',
-					lifecycleEvents: [
-						'logs',
-					],
+					usage: "Output the logs of a deployed APIG stage (alias)",
+					lifecycleEvents: ["logs"],
 					options: {
 						alias: {
-							usage: 'Alias'
+							usage: "Alias",
 						},
 						stage: {
-							usage: 'Stage of the service',
-							shortcut: 's',
+							usage: "Stage of the service",
+							shortcut: "s",
 						},
 						region: {
-							usage: 'Region of the service',
-							shortcut: 'r',
+							usage: "Region of the service",
+							shortcut: "r",
 						},
 						tail: {
-							usage: 'Tail the log output',
-							shortcut: 't',
+							usage: "Tail the log output",
+							shortcut: "t",
 						},
 						startTime: {
-							usage: 'Logs before this time will not be displayed',
+							usage: "Logs before this time will not be displayed",
 						},
 						filter: {
-							usage: 'A filter pattern',
+							usage: "A filter pattern",
 						},
 						interval: {
-							usage: 'Tail polling interval in milliseconds. Default: `1000`',
-							shortcut: 'i',
+							usage: "Tail polling interval in milliseconds. Default: `1000`",
+							shortcut: "i",
 						},
 					},
-					key: 'logs:api',
-					pluginName: 'Logs',
+					key: "logs:api",
+					pluginName: "Logs",
 					commands: {},
-				}
+				},
 			});
 		} catch (e) {
 			// Do nothing
@@ -344,9 +370,8 @@ class AwsAlias {
 	}
 
 	_cleanup() {
-		this._serverless.cli.log('Cleanup !!!!');
+		this._serverless.cli.log("Cleanup !!!!");
 	}
-
 }
 
 module.exports = AwsAlias;
